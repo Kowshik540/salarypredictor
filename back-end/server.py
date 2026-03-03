@@ -125,35 +125,11 @@ def login():
 
 # ---------------- SALARY MODEL ----------------
 import os
-BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "salary_predictor_model.pkl")
-DATA_PATH  = os.path.join(BASE_DIR, "global_job_salaries_200k_usd.csv")
 
 predictor = SalaryPredictor()
-if os.path.exists(MODEL_PATH):
-    print("Loading existing model...")
-    predictor.load_saved_model(MODEL_PATH)
-else:
-    print("Training model from scratch...")
-    import gc
-    predictor.load_data(DATA_PATH)
-    predictor.train_model()
-    predictor.save_model(MODEL_PATH)
-    gc.collect()
-    print("Model trained and saved!")
-```
-
-Also update `requirements.txt` — add this line at the top of the Build Command in Render:
-
-Go to **Render → your service → Settings → Build Command** and change to:
-```
-pip install -r requirements.txt
-```
-
-And go to **Environment Variables** → add:
-```
-WEB_CONCURRENCY = 1
-MALLOC_TRIM_THRESHOLD_ = 100000
+predictor.load_saved_model(MODEL_PATH)
 
 # ---------------- PPP + FX TABLES ----------------
 PPP_FACTOR = {
