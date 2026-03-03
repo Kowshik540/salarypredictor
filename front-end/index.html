@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Know Your Worth</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="glass-navbar">
+    <div class="nav-left">
+      <span class="brand">💼 Salary Predictor</span>
+    </div>
+    <div class="nav-right">
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <!-- MAIN SECTION -->
+  <main class="hero">
+    <div class="content">
+      <h1>Know Your <span>Worth</span></h1>
+      <p class="subtitle">
+        AI-powered salary predictions based on real-time market data.
+        Get accurate compensation estimates for any tech role, skill set, and location.
+      </p>
+
+      <div class="form-card">
+        <form id="salaryForm">
+          <div class="form-group">
+            <label>Job Role</label>
+            <select id="jobRole" required style="padding:14px;border-radius:12px;border:1px solid #c7d2fe;background:linear-gradient(180deg,#fff,#f8fafc);font-size:14px;width:100%;">
+              <option value="">-- Select a Role --</option>
+              <option>Software Engineer</option>
+              <option>Frontend Developer</option>
+              <option>Backend Developer</option>
+              <option>Full Stack Developer</option>
+              <option>Data Scientist</option>
+              <option>Machine Learning Engineer</option>
+              <option>AI Engineer</option>
+              <option>DevOps Engineer</option>
+              <option>Cloud Engineer</option>
+              <option>Mobile Developer</option>
+              <option>Web Developer</option>
+              <option>QA Engineer</option>
+              <option>Automation Engineer</option>
+              <option>Tester</option>
+              <option>Intern</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Skills</label>
+              <input type="text" id="skills" placeholder="Python, SQL, Machine Learning" required />
+            </div>
+
+            <div class="form-group">
+              <label>Region</label>
+              <select id="region" required style="padding:14px;border-radius:12px;border:1px solid #c7d2fe;background:linear-gradient(180deg,#fff,#f8fafc);font-size:14px;width:100%;">
+                <option value="">-- Select Region --</option>
+                <option>United States</option>
+                <option>India</option>
+                <option>Germany</option>
+                <option>United Kingdom</option>
+                <option>Canada</option>
+                <option>Australia</option>
+                <option>Japan</option>
+                <option>France</option>
+                <option>China</option>
+                <option>Brazil</option>
+                <option>South Africa</option>
+                <option>Singapore</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Years of Experience</label>
+            <input type="number" id="yearsOfExperience" placeholder="e.g. 2" min="0" max="50" required />
+          </div>
+
+          <button type="submit">🔍 Predict Salary Range</button>
+          <div id="result"></div>
+        </form>
+
+        <button id="downloadBtn" type="button">📥 Download Report (PDF)</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- CHART -->
+  <div class="chart-card">
+    <canvas id="salaryChart"></canvas>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // ✅ CHANGE THIS to your Render backend URL after deploying
+    const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://127.0.0.1:5000"
+      : "https://YOUR-RENDER-APP-NAME.onrender.com";  // ← UPDATE THIS
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const token = localStorage.getItem("token");
+      if (!token) { window.location.href = "login.html"; return; }
+
+      const form       = document.getElementById("salaryForm");
+      const resultEl   = document.getElementById("result");
+      const logoutBtn  = document.getElementById("logoutBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
+      let chart;
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const jobRole          = document.getElementById("jobRole").value;
+        const skills           = document.getElementById("skills").value.trim();
+        const region           = document.getElementById("region").value;
+        const yearsOfExperience = document.getElementById("yearsOfExperience").value;
+
+        if (!jobRole)  { alert("❌ Please select a Job Role");     return; }
+        if (!skills)   { alert("❌ Please enter your skills");     return; }
+        if (!region)   { alert("❌ Please select a Region");       return; }
+        if (yearsOfExperience === "" || yearsOfExperience < 0) {
+          alert("❌ Please enter valid years of experience"); return;
+        }
+
+        resultEl.innerHTML = `<span style="color:#2563eb">⏳ Calculating salary…</span>`;
+
+        try {
+          const response = await fetch(`${API}/predict-salary`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": token },
+            body: JSON.stringify({ jobRole, skills, region, yearsOfExperience })
+          });
+
+          const data = await response.json();
+          if (!response.ok) { alert(data.error || "Prediction failed"); resultEl.innerText = ""; return; }
+
+          resultEl.innerHTML = `
+            💰 <b>Nominal Salary (USD)</b>: $${new Intl.NumberFormat("en-US").format(data.nominalSalaryUSD)}<br/>
+            🌍 <b>PPP Adjusted (${data.currency.code} ${data.currency.symbol})</b>:
+            ${data.currency.symbol}${new Intl.NumberFormat().format(Math.round(data.pppSalaryLocal))}<br/><br/>
+            <span style="font-size:13px;opacity:0.7">
+              PPP salary reflects the true value of income after adjusting for cost of living.
+            </span>`;
+
+          const ctx = document.getElementById("salaryChart").getContext("2d");
+          if (chart) chart.destroy();
+
+          chart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: ["Now", "1 Year", "2 Years", "3 Years"],
+              datasets: [{
+                label: `PPP Salary Growth (${data.currency.code})`,
+                data: [
+                  data.pppSalaryLocal,
+                  data.growth.year1_ppp_local,
+                  data.growth.year2_ppp_local,
+                  data.growth.year3_ppp_local
+                ],
+                borderWidth: 3, tension: 0.45, fill: true,
+                backgroundColor: "rgba(16,185,129,0.15)",
+                borderColor: "#10b981"
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+
+        } catch (err) {
+          alert("❌ Could not reach the server. Please try again.");
+          resultEl.innerText = "";
+        }
+      });
+
+      downloadBtn.addEventListener("click", async function () {
+        const jobRole           = document.getElementById("jobRole").value;
+        const skills            = document.getElementById("skills").value;
+        const region            = document.getElementById("region").value;
+        const yearsOfExperience = document.getElementById("yearsOfExperience").value;
+
+        if (!jobRole || !region) { alert("Please fill in the form first"); return; }
+
+        downloadBtn.textContent = "⏳ Generating PDF…";
+        try {
+          const res  = await fetch(`${API}/download-report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": token },
+            body: JSON.stringify({ jobRole, skills, region, yearsOfExperience })
+          });
+          const blob = await res.blob();
+          const url  = window.URL.createObjectURL(blob);
+          const a    = document.createElement("a");
+          a.href = url; a.download = "salary_report.pdf";
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          alert("❌ PDF download failed. Please try again.");
+        }
+        downloadBtn.textContent = "📥 Download Report (PDF)";
+      });
+
+      logoutBtn.addEventListener("click", function () {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+      });
+    });
+  </script>
+</body>
+</html>
