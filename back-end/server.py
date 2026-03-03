@@ -125,7 +125,9 @@ def login():
 
 # ---------------- SALARY MODEL ----------------
 predictor = SalaryPredictor()
-predictor.load_saved_model("salary_predictor_model.pkl")
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+predictor.load_saved_model(os.path.join(BASE_DIR, "salary_predictor_model.pkl"))
 
 # ---------------- PPP + FX TABLES ----------------
 PPP_FACTOR = {
