@@ -125,12 +125,20 @@ def login():
 
 # ---------------- SALARY MODEL ----------------
 import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "salary_predictor_model.pkl")
-print(f"Loading model from: {MODEL_PATH}")
-print(f"File exists: {os.path.exists(MODEL_PATH)}")
+DATA_PATH  = os.path.join(BASE_DIR, "global_job_salaries_200k_usd.csv")
+
 predictor = SalaryPredictor()
-predictor.load_saved_model(MODEL_PATH)
+if os.path.exists(MODEL_PATH):
+    print("Loading existing model...")
+    predictor.load_saved_model(MODEL_PATH)
+else:
+    print("Model not found! Training from scratch...")
+    predictor.load_data(DATA_PATH)
+    predictor.train_model()
+    predictor.save_model(MODEL_PATH)
+    print("Model trained and saved!")
 
 # ---------------- PPP + FX TABLES ----------------
 PPP_FACTOR = {
