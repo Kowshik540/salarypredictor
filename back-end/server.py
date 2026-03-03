@@ -124,10 +124,13 @@ def login():
     return jsonify({"token": str(uuid.uuid4()), "email": email}), 200
 
 # ---------------- SALARY MODEL ----------------
-predictor = SalaryPredictor()
 import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-predictor.load_saved_model(os.path.join(BASE_DIR, "salary_predictor_model.pkl"))
+MODEL_PATH = os.path.join(BASE_DIR, "salary_predictor_model.pkl")
+print(f"Loading model from: {MODEL_PATH}")
+print(f"File exists: {os.path.exists(MODEL_PATH)}")
+predictor = SalaryPredictor()
+predictor.load_saved_model(MODEL_PATH)
 
 # ---------------- PPP + FX TABLES ----------------
 PPP_FACTOR = {
