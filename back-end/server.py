@@ -134,11 +134,26 @@ if os.path.exists(MODEL_PATH):
     print("Loading existing model...")
     predictor.load_saved_model(MODEL_PATH)
 else:
-    print("Model not found! Training from scratch...")
+    print("Training model from scratch...")
+    import gc
     predictor.load_data(DATA_PATH)
     predictor.train_model()
     predictor.save_model(MODEL_PATH)
+    gc.collect()
     print("Model trained and saved!")
+```
+
+Also update `requirements.txt` — add this line at the top of the Build Command in Render:
+
+Go to **Render → your service → Settings → Build Command** and change to:
+```
+pip install -r requirements.txt
+```
+
+And go to **Environment Variables** → add:
+```
+WEB_CONCURRENCY = 1
+MALLOC_TRIM_THRESHOLD_ = 100000
 
 # ---------------- PPP + FX TABLES ----------------
 PPP_FACTOR = {
